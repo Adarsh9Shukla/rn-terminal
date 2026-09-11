@@ -2,6 +2,7 @@
   "name": "react-native-rn-terminal",
   "version": "0.1.0",
   "description": "a libary to get native shell that can run code on your phone's linux sysytem",
+  "react-native": "./src/index.tsx",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
@@ -170,5 +171,9 @@
       "vite"
     ],
     "version": "0.63.1"
+  },
+  "dependencies": {
+    "react-native-webview": "^14.0.1",
+    "xterm": "^5.3.0"
   }
 }

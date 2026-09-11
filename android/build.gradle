@@ -1,0 +1,25 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.adarshshukla.rnterminal'
+
+    compileSdk 36
+    ndkVersion '27.1.12297006'
+
+    defaultConfig {
+        minSdk 24
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('CMakeLists.txt')
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.facebook.react:react-android'
+}
