@@ -10,6 +10,7 @@ interface LocalTerminalNativeModule {
   listInstalledPackages(): Promise<InstalledPackage[]>;
   isPackageInstalled(name: string): Promise<boolean>;
   installPackage(name: string): Promise<InstalledPackage>;
+  uninstallPackage(name: string): Promise<boolean>;
 }
 
 const LocalTerminal = NativeModules.LocalTerminal as LocalTerminalNativeModule;
@@ -32,5 +33,8 @@ export const PackageManager = {
   },
   install(name: string): Promise<InstalledPackage> {
     return getNativeModule().installPackage(name);
+  },
+  uninstall(name: string): Promise<boolean> {
+    return getNativeModule().uninstallPackage(name);
   },
 };

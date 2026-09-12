@@ -42,26 +42,35 @@ class PackageManager(
             }
     }
 
-    fun savePackageInfo(
-        name: String,
-        version: String,
-        architecture: String) {
-        packageDatabase.mkdirs()
+   fun savePackageInfo(
+    name: String,
+    version: String,
+    architecture: String,
+    files: List<String>) {
+    packageDatabase.mkdirs()
 
-        val json = JSONObject().apply {
-            put("name", name)
-            put("version", version)
-            put("architecture", architecture)
-            put("installedAt", System.currentTimeMillis())
+    val json = JSONObject().apply {
+        put("name", name)
+        put("version", version)
+        put("architecture", architecture)
+        put("installedAt", System.currentTimeMillis())
+
+        val filesArray = org.json.JSONArray()
+
+        files.forEach { file ->
+            filesArray.put(file)
         }
 
-        File(
-            packageDatabase,
-            "$name.json"
-        ).writeText(
-            json.toString(2)
-        )
+        put("files", filesArray)
     }
+
+    File(
+        packageDatabase,
+        "$name.json"
+    ).writeText(
+        json.toString(2)
+    )
+}
 
     fun removePackageInfo(name: String): Boolean {
         val file = File(packageDatabase, "$name.json")
@@ -72,6 +81,7 @@ class PackageManager(
             false
         }
     }
+
     fun install(packageName: String): PackageInfo {
     runtimeManager.initialize()
 
@@ -104,18 +114,55 @@ class PackageManager(
         )
     }
 
-    savePackageInfo(
-        name = name,
-        version = version,
-        architecture = architecture
-    )
+  savePackageInfo(
+    name = name,
+    version = version,
+    architecture = architecture,
+    files = (0 until files.length()).map { index ->
+        files.getString(index)
+    }
+)
 
     return PackageInfo(
         name = name,
         version = version,
         architecture = architecture
     )
-}private fun installFile(
+}
+fun uninstall(packageName: String): Boolean {
+    runtimeManager.initialize()
+
+    val metadataFile = File(
+        packageDatabase,
+        "$packageName.json"
+    )
+
+    if (!metadataFile.exists()) {
+        return false
+    }
+
+    val metadata = JSONObject(
+        metadataFile.readText()
+    )
+
+    val files = metadata.getJSONArray("files")
+
+    for (index in 0 until files.length()) {
+        val relativePath = files.getString(index)
+
+        val installedFile = File(
+            runtimeManager.prefix,
+            relativePath
+        )
+
+        if (installedFile.exists()) {
+            installedFile.delete()
+        }
+    }
+
+    return metadataFile.delete()
+}
+private fun installFile(
     assetRoot: String,
     relativePath: String
 ) {

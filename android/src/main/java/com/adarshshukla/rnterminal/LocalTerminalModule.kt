@@ -150,7 +150,23 @@ fun isPackageInstalled(
         )
     }
 }
+@ReactMethod
+fun uninstallPackage(
+    name: String,
+    promise: Promise
+) {
+    try {
+        val removed = packageManager.uninstall(name)
 
+        promise.resolve(removed)
+    } catch (error: Exception) {
+        promise.reject(
+            "PACKAGE_UNINSTALL_ERROR",
+            error.message,
+            error
+        )
+    }
+}
     @ReactMethod
     fun testEmbeddedBinary(promise: Promise) {
         try {

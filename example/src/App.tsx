@@ -9,6 +9,7 @@ console.log('NATIVE MODULES:', Object.keys(NativeModules));
 console.log('LOCAL TERMINAL:', NativeModules.LocalTerminalModule);
 export default function App() {
   const backend = useMemo(() => createLocalTerminal(), []);
+
   useEffect(() => {
     async function testPackages() {
       try {
@@ -19,6 +20,9 @@ export default function App() {
           'HELLO INSTALLED:',
           await PackageManager.isInstalled('hello')
         );
+        const removed = await PackageManager.uninstall('hello');
+
+        console.log('HELLO UNINSTALLED:', removed);
       } catch (error) {
         console.error('PACKAGE TEST ERROR:', error);
       }
@@ -26,6 +30,7 @@ export default function App() {
 
     testPackages();
   }, []);
+  (async () => {})();
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
