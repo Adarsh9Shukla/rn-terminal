@@ -25,7 +25,6 @@ export class LocalPTYBackend implements TerminalBackend {
 
     this.unsubscribeOutput = onPtyOutput((data) => {
       console.log('PTY OUTPUT:', JSON.stringify(data)); // Log a more readable version as well.
-      console.log('PTY OUTPUT TEXT:', data);
       this.dataCallback?.(data);
     });
 

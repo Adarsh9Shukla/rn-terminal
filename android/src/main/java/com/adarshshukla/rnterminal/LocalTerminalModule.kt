@@ -22,7 +22,18 @@ class LocalTerminalModule(
     private var ptyReaderRunning = false
     private var currentSession: PtySession? = null
 
-    override fun getName(): String {
+    private lateinit var runtimeManager: RuntimeManager
+    private lateinit var packageManager: PackageManager
+init {
+    runtimeManager = RuntimeManager(reactApplicationContext)
+    runtimeManager.initialize()
+
+    packageManager = PackageManager(
+        reactApplicationContext,
+        runtimeManager
+    )
+}
+     override fun getName(): String {
         return "LocalTerminal"
     }
 
@@ -70,6 +81,97 @@ class LocalTerminalModule(
         }.start()
     }
 
+@ReactMethod
+fun getRuntimeInfo(promise: Promise) {
+    try {
+        runtimeManager.initialize()
+
+        val result = Arguments.createMap()
+
+        result.putString(
+            "prefix",
+            runtimeManager.getPrefix()
+        )
+
+        result.putString(
+            "home",
+            runtimeManager.getHome()
+        )
+
+        result.putString(
+            "bin",
+            runtimeManager.getBin()
+        )
+
+        promise.resolve(result)
+    } catch (e: Exception) {
+        promise.reject("RUNTIME_ERROR", e)
+    }
+}
+    @ReactMethod
+fun listInstalledPackages(promise: Promise) {
+    try {
+        val packages = packageManager.listInstalled()
+
+        val result = Arguments.createArray()
+
+        packages.forEach { pkg ->
+            val item = Arguments.createMap()
+
+            item.putString("name", pkg.name)
+            item.putString("version", pkg.version)
+            item.putString("architecture", pkg.architecture)
+
+            result.pushMap(item)
+        }
+
+        promise.resolve(result)
+    } catch (error: Exception) {
+        promise.reject(
+            "PACKAGE_LIST_ERROR",
+            error.message,
+            error
+        )
+    }
+}
+@ReactMethod
+fun isPackageInstalled(
+    name: String,
+    promise: Promise) {
+    try {
+        promise.resolve(
+            packageManager.isInstalled(name)
+        )
+    } catch (error: Exception) {
+        promise.reject(
+            "PACKAGE_CHECK_ERROR",
+            error.message,
+            error
+        )
+    }
+}
+@ReactMethod
+fun registerPackage(
+    name: String,
+    version: String,
+    architecture: String,
+    promise: Promise) {
+    try {
+        packageManager.savePackageInfo(
+            name,
+            version,
+            architecture
+        )
+
+        promise.resolve(true)
+    } catch (error: Exception) {
+        promise.reject(
+            "PACKAGE_REGISTER_ERROR",
+            error.message,
+            error
+        )
+    }
+}
     @ReactMethod
     fun testEmbeddedBinary(promise: Promise) {
         try {
@@ -113,13 +215,24 @@ class LocalTerminalModule(
         shellPath: String,
         homePath: String,
         prefixPath: String,
-        promise: Promise
-    ) {
+        promise: Promise) {
+
         try {
-          val sessionInfo = PtyNative.createPty(
+      val appDataDir =
+    reactApplicationContext.applicationInfo.dataDir
+
+val preloadPath =
+    File(
+        reactApplicationContext.filesDir,
+        "usr/lib/libtermux-exec-direct-ld-preload.so"
+    ).absolutePath
+
+val sessionInfo = PtyNative.createPty(
     shellPath,
     homePath,
-    prefixPath
+    prefixPath,
+    appDataDir,
+    preloadPath
 )
 
             if (sessionInfo.size < 2) {
@@ -151,7 +264,32 @@ class LocalTerminalModule(
             )
         }
     }
+@ReactMethod
+fun installPackage(
+    name: String,
+    promise: Promise
+) {
+    try {
+        val packageInfo = packageManager.install(name)
 
+        val result = Arguments.createMap()
+
+        result.putString("name", packageInfo.name)
+        result.putString("version", packageInfo.version)
+        result.putString(
+            "architecture",
+            packageInfo.architecture
+        )
+
+        promise.resolve(result)
+    } catch (error: Exception) {
+        promise.reject(
+            "PACKAGE_INSTALL_ERROR",
+            error.message,
+            error
+        )
+    }
+}
     @ReactMethod
     fun resizePty(
         fd: Int,
@@ -283,8 +421,7 @@ fun testTermuxExec(promise: Promise) {
     fun writePty(
         fd: Int,
         data: String,
-        promise: Promise
-    ) {
+        promise: Promise) {
         try {
             val written = PtyNative.writePty(fd, data)
 
@@ -339,8 +476,7 @@ fun testTermuxExec(promise: Promise) {
     @ReactMethod
     fun readPty(
         fd: Int,
-        promise: Promise
-    ) {
+        promise: Promise) {
         Thread {
             try {
                 val output = PtyNative.readPty(fd)

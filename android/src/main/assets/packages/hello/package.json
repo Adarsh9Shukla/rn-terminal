@@ -1,0 +1,11 @@
+{
+  "name": "hello",
+  "version": "1.0.0",
+  "architecture": "aarch64",
+  "type": "binary",
+  "entry": "bin/hello",
+  "files": [
+    "bin/hello"
+  ]
+}
+

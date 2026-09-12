@@ -14,13 +14,15 @@ class PtyNative {
             fd: Int,
             data: String
         ): Int
+
 @JvmStatic
 external fun createPty(
     shellPath: String,
     homePath: String,
-    prefixPath: String
+    prefixPath: String,
+    appDataDir: String,
+    preloadPath: String
 ): IntArray
-
         @JvmStatic
         external fun readPty(
             fd: Int

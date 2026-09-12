@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
 import { XtermView, type XtermViewHandle } from './XtermView';
-
 import type { TerminalBackend } from '../core/Terminal.types';
 
 interface TerminalProps {
@@ -13,8 +12,13 @@ export function Terminal({ backend }: TerminalProps) {
   const terminalRef = useRef<XtermViewHandle>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const unsubscribe = backend.onData((data) => {
-      terminalRef.current?.write(data);
+      if (!cancelled) {
+        console.log('TERMINAL RECEIVED:', JSON.stringify(data));
+        terminalRef.current?.write(data);
+      }
     });
 
     backend.connect().catch((error) => {
@@ -22,12 +26,14 @@ export function Terminal({ backend }: TerminalProps) {
     });
 
     return () => {
+      cancelled = true;
       unsubscribe();
       backend.disconnect();
     };
   }, [backend]);
 
   const handleInput = (data: string) => {
+    console.log('TERMINAL INPUT:', JSON.stringify(data));
     backend.write(data);
   };
 

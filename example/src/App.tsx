@@ -1,20 +1,44 @@
-import { Text, View, StyleSheet } from 'react-native';
-import { multiply } from 'react-native-rn-terminal';
+import { useEffect, useMemo } from 'react';
+import { StyleSheet } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-const result = multiply(3, 7);
-
+import { Terminal, createLocalTerminal } from 'react-native-rn-terminal';
+import { NativeModules } from 'react-native';
+import { PackageManager } from 'react-native-rn-terminal';
+console.log('NATIVE MODULES:', Object.keys(NativeModules));
+console.log('LOCAL TERMINAL:', NativeModules.LocalTerminalModule);
 export default function App() {
+  const backend = useMemo(() => createLocalTerminal(), []);
+  useEffect(() => {
+    async function testPackages() {
+      try {
+        const installed = await PackageManager.install('hello');
+
+        console.log('INSTALLED PACKAGE:', installed);
+        console.log(
+          'HELLO INSTALLED:',
+          await PackageManager.isInstalled('hello')
+        );
+      } catch (error) {
+        console.error('PACKAGE TEST ERROR:', error);
+      }
+    }
+
+    testPackages();
+  }, []);
   return (
-    <View style={styles.container}>
-      <Text>Result: {result}</Text>
-    </View>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        <Terminal backend={backend} />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
   },
 });

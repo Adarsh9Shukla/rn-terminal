@@ -24,6 +24,13 @@ interface LocalTerminalModule {
   }>;
   stopShell(): Promise<string>;
 
+  // createPty(
+  //   shellPath: string,
+  //   homePath: string,
+  //   prefixPath: string,
+  //   appDataDir: string,
+  //   preloadPath: string
+  // ): Promise<PtySession>;
   createPty(
     shellPath: string,
     homePath: string,

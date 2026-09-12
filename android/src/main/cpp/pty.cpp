@@ -14,66 +14,137 @@ Java_com_adarshshukla_rnterminal_PtyNative_createPty(
     jobject /* thiz */,
     jstring shellPath,
     jstring homePath,
-    jstring prefixPath
+    jstring prefixPath,
+    jstring appDataDir,
+    jstring preloadPath
 ) {
-    const char* shell = env->GetStringUTFChars(shellPath, nullptr);
-    const char* home = env->GetStringUTFChars(homePath, nullptr);
-    const char* prefix = env->GetStringUTFChars(prefixPath, nullptr);
+    const char* shell =
+        env->GetStringUTFChars(shellPath, nullptr);
 
-    if (shell == nullptr || home == nullptr || prefix == nullptr) {
-        if (shell != nullptr) env->ReleaseStringUTFChars(shellPath, shell);
-        if (home != nullptr) env->ReleaseStringUTFChars(homePath, home);
-        if (prefix != nullptr) env->ReleaseStringUTFChars(prefixPath, prefix);
-        return nullptr;
-    }
+    const char* home =
+        env->GetStringUTFChars(homePath, nullptr);
+
+    const char* prefix =
+        env->GetStringUTFChars(prefixPath, nullptr);
+
+    const char* appData =
+        env->GetStringUTFChars(appDataDir, nullptr);
+
+    const char* preload =
+        env->GetStringUTFChars(preloadPath, nullptr);
 
     int masterFd = -1;
+    pid_t pid = -1;
 
-    pid_t pid = forkpty(
+    struct winsize windowSize {};
+    windowSize.ws_col = 80;
+    windowSize.ws_row = 24;
+
+    pid = forkpty(
         &masterFd,
         nullptr,
         nullptr,
-        nullptr
+        &windowSize
     );
 
-    if (pid == -1) {
-        env->ReleaseStringUTFChars(shellPath, shell);
-        env->ReleaseStringUTFChars(homePath, home);
-        env->ReleaseStringUTFChars(prefixPath, prefix);
+    if (pid < 0) {
+        env->ReleaseStringUTFChars(
+            shellPath,
+            shell
+        );
+
+        env->ReleaseStringUTFChars(
+            homePath,
+            home
+        );
+
+        env->ReleaseStringUTFChars(
+            prefixPath,
+            prefix
+        );
+
+        env->ReleaseStringUTFChars(
+            appDataDir,
+            appData
+        );
+
+        env->ReleaseStringUTFChars(
+            preloadPath,
+            preload
+        );
+
         return nullptr;
     }
 
     if (pid == 0) {
-        setenv("HOME", home, 1);
-        setenv("PREFIX", prefix, 1);
+        /*
+         * Child process.
+         *
+         * Configure the embedded Termux-style environment.
+         */
+setenv("TERMUX_APP__DATA_DIR", appData, 1);
+setenv("TERMUX__ROOTFS", appData, 1);
+setenv("TERMUX__PREFIX", prefix, 1);
+setenv("HOME", home, 1);
+setenv("PREFIX", prefix, 1);
 
-        std::string path = std::string(prefix) + "/bin:/system/bin";
-        setenv("PATH", path.c_str(), 1);
+std::string path =
+    std::string(prefix) +
+    "/bin:/system/bin:/system/xbin";
 
-        execl(
-            shell,
-            "sh",
-            nullptr
-        );
+setenv("PATH", path.c_str(), 1);
 
+setenv("LD_PRELOAD", preload, 1);
+setenv("TERM", "xterm-256color", 1);
+setenv("PS1", "$ ", 1);
+setenv("TERM", "xterm-256color", 1);
+if (chdir(home) != 0) {
+    // Ignore for now.
+}
+
+execl(shell, "sh", nullptr);
+        /*
+         * If execl() fails, exit the child.
+         */
         _exit(127);
     }
 
-    env->ReleaseStringUTFChars(shellPath, shell);
-    env->ReleaseStringUTFChars(homePath, home);
-    env->ReleaseStringUTFChars(prefixPath, prefix);
+    /*
+     * Parent process.
+     */
 
-    jintArray result = env->NewIntArray(2);
+    env->ReleaseStringUTFChars(
+        shellPath,
+        shell
+    );
 
-    if (result == nullptr) {
-        close(masterFd);
-        return nullptr;
-    }
+    env->ReleaseStringUTFChars(
+        homePath,
+        home
+    );
+
+    env->ReleaseStringUTFChars(
+        prefixPath,
+        prefix
+    );
+
+    env->ReleaseStringUTFChars(
+        appDataDir,
+        appData
+    );
+
+    env->ReleaseStringUTFChars(
+        preloadPath,
+        preload
+    );
 
     jint values[2];
 
     values[0] = masterFd;
     values[1] = static_cast<jint>(pid);
+
+    jintArray result =
+        env->NewIntArray(2);
 
     env->SetIntArrayRegion(
         result,
