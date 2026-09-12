@@ -150,28 +150,7 @@ fun isPackageInstalled(
         )
     }
 }
-@ReactMethod
-fun registerPackage(
-    name: String,
-    version: String,
-    architecture: String,
-    promise: Promise) {
-    try {
-        packageManager.savePackageInfo(
-            name,
-            version,
-            architecture
-        )
 
-        promise.resolve(true)
-    } catch (error: Exception) {
-        promise.reject(
-            "PACKAGE_REGISTER_ERROR",
-            error.message,
-            error
-        )
-    }
-}
     @ReactMethod
     fun testEmbeddedBinary(promise: Promise) {
         try {
